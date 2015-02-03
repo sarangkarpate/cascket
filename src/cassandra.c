@@ -19,7 +19,61 @@ int uint8_to_int16(uint8_t *input){
 	int i = (input[0] << 16) | (input[1]);
 	return i;
 }
+<<<<<<< HEAD
 int cassandra_connect(int sock,char *ip,char *user, char*pass){
+=======
+int cassandra_authenticate(char *user, char*pass){
+	if(AUTH_NEEDED == 0)
+		return 1;
+	int i,n;
+	/* Version */
+	sendbuff[0] = 0x03; 
+
+	sendbuff[1] = 0x02;
+
+	/* Stream - set to 1 (first non zero value) */
+	sendbuff[2] = 0x00;
+	sendbuff[3] = 0x01;
+
+	/* Opcode - F for AUTH_RESPONSE */
+	sendbuff[4] = 0x0F;
+	signed int x = strlen(user)+strlen(pass)+2+4;
+	int32_to_uint8(&sendbuff[5],x);
+	x = x-4;
+	int32_to_uint8(&sendbuff[9],x);
+	sendbuff[13]=0;
+	int j;
+	for(i = 14,j=0;i<14+strlen(user);i++,j++){
+		sendbuff[i] = user[j];//This is username
+	}
+	sendbuff[i++] = 0;
+	x = i;
+	for(j=0;i<x+strlen(pass);i++,j++){
+		sendbuff[i] = pass[j];//This is password
+	}
+	write(sockfd, sendbuff, i);
+	while((n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0){
+		recvBuff[n] = 0;
+		if(recvBuff[4] == 0x00){
+			for (i = 9; i < n; i++)
+				fprintf(stderr,"%c",recvBuff[i]);
+			fprintf(stderr,"\n");
+			return 0;
+		}
+		for (i = 0; i < n; i++)
+		{
+			//	printf("%x ",recvBuff[i]);
+		}
+		break;
+	}
+	if( n < 0) {
+		return 0;
+	}
+	return 1;
+
+}
+int cassandra_connect(int sock,char *ip){
+>>>>>>> 0bba89deac50a9cf9dfc4665591f52c4bf12dba6
 	int i,n;
 	memset(recvBuff, '0' ,sizeof(recvBuff));
 	sockfd=-1;
@@ -33,7 +87,10 @@ int cassandra_connect(int sock,char *ip,char *user, char*pass){
 	if(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))<0)
 	{
 		fprintf(stderr,"\n Error : Connect Failed \n");
+<<<<<<< HEAD
 		sockfd = -1;
+=======
+>>>>>>> 0bba89deac50a9cf9dfc4665591f52c4bf12dba6
 		return 0;
 	}
 
@@ -114,6 +171,7 @@ int cassandra_connect(int sock,char *ip,char *user, char*pass){
 	{
 		//   printf("\n Read Error \n");
 	}
+<<<<<<< HEAD
 	/* Version */
 	sendbuff[0] = 0x03; 
 
@@ -161,6 +219,15 @@ int cassandra_connect(int sock,char *ip,char *user, char*pass){
 
 }
 
+=======
+	//printf("sending authentication packet\n");
+	/* Create and send packet */
+
+
+	return 1;
+
+}
+>>>>>>> 0bba89deac50a9cf9dfc4665591f52c4bf12dba6
 int cassandra_execute(char *query){
 	int i,n;
 	sendbuff[0] = 0x03; 
