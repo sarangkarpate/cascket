@@ -76,6 +76,7 @@ int has_next(result_set *rs)
 
 	rs->curr_row++;
 	char *output;
+	int *lmn;
 
 	if (rs->curr_row > rs->row_count)
 		return 0;

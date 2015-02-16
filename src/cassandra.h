@@ -59,5 +59,6 @@ result_set *cassandra_execute(char *);
 result_set *create_rs();
 
 void init_rs(result_set *);
+void result_set_destroy(result_set *);
 int has_next(result_set *);
 void *get_val(result_set *rs, char *column_name);

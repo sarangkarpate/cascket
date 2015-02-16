@@ -22,7 +22,7 @@ int main(void)
 		temp = (char *)get_val(rs, "user");
 		printf("got value as %s\n", temp);
 		temp = (char *)get_val(rs, "password");
-		printf("surname value as %s\n", temp);
+		printf("surname value as %d\n", temp);
 	}
 	result_set_destroy(rs);
 	return 0;
