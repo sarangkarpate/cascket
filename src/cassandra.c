@@ -126,9 +126,13 @@ int has_next(result_set *rs)
 		}
 		else if (rs->col_desc_array[m].type == INT)
 		{
-			x = uint8_to_int32(&rs->buffer[rs->curr_pos]); 
+			int *a = (int *)malloc(sizeof(int));
+			x = uint8_to_int32(&rs->buffer[rs->curr_pos]);
 			rs->curr_pos += 4;
-			printf("Column Value:%d", x);
+			*a = x;
+			printf("Column Value:%d\n", x);
+			cfuhash_put(rs->map, rs->col_desc_array[m].name, a);
+
 		}
 		else if (rs->col_desc_array[m].type == SET)
 		{

@@ -26,7 +26,7 @@ int main(void)
 		if(n != NULL)
 			printf("surname value as %d \n", *n );
 		else 
-			printf("surname value as null\n");
+			printf("surname value as null");
 	}
 	result_set_destroy(rs);
 	return 0;
