@@ -13,4 +13,4 @@ cfustring.o: cfustring.c
 hash_usage.o: hash_usage.c
 	cc -g -c -Wall -Wextra hash_usage.c -o hash_usage.o
 clean:
-	rm *.o try *~
+	rm *.o try

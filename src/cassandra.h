@@ -26,6 +26,31 @@
 #define UDT 		0x0030
 #define TUPLE 		0x0031
 
+
+#define ERROR		0x00
+#define STARTUP		0x01
+#define READY		0x02
+#define AUTHENTICATE	0x03
+#define OPTIONS		0x05
+#define SUPPORTED	0x06
+#define QUERY		0x07
+#define RESULT		0x08
+#define PREPARE		0x09
+#define EXECUTE		0x0A
+#define REGISTER	0x0B
+#define EVENT		0x0C
+#define BATCH		0x0D
+#define AUTH_CHALLENGE	0x0E
+#define AUTH_RESPONSE	0x0F
+#define AUTH_SUCCESS	0x10
+
+#define VOID		0x0001/*: for results carrying no information.*/
+#define ROWS		0x0002/*: for results to select queries, returning a set of rows.*/
+#define SET_KEYSPACE	0x0003/*: the result to a `use` query.*/
+#define PREPARED	0x0004/*: result to a PREPARE message.*/
+#define SCHEMA_CHANGE	0x0005/*: the result to a schema altering query.*/
+
+
 int AUTH_NEEDED;
 int COLUMN_COUNT;
 int sockfd;
@@ -47,18 +72,27 @@ typedef struct result_set{
 	char *schema_name;	
 }result_set;
 
+typedef struct cass_prepared_statement
+{
+	uint8_t *id;
+	int id_length;
+} cass_prepared_statement;
+
+/* Helping functions */
 void int32_to_uint8(uint8_t *, int);
 int uint8_to_int32(uint8_t *);
 int uint8_to_int16(uint8_t *);
-void  uint8_to_string(uint8_t *, int, char *);
-int cassandra_connect(int, char *, char *, char *);
-result_set *cassandra_execute(char *);
+void uint8_to_string(uint8_t *, int, char *);
 
 /* Following are the functions for Resultset */
-
-result_set *create_rs();
-
 void init_rs(result_set *);
-void result_set_destroy(result_set *);
+result_set *create_rs();
 int has_next(result_set *);
 void *get_val(result_set *rs, char *column_name);
+void result_set_destroy(result_set *rs);
+
+/* Cassandra functions */
+result_set *cass_execute(char *);
+int cass_connect(int, char *, char *, char *);
+cass_prepared_statement *cass_prepare_statement(char *);
+result_set *cass_execute_prepared_statement(cass_prepared_statement *);

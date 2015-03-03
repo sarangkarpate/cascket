@@ -13,23 +13,25 @@
 
 /* -- Following are the declarations / initializations for ResultSet Object --*/
 
-result_set* create_rs()
+result_set *create_rs()
 {
 	return (result_set*) malloc (sizeof(result_set));
 }
+
 void result_set_destroy(result_set *rs)
 {
 	int i;
-	free(rs->buffer);
-	cfuhash_clear(rs->map);
+
 	cfuhash_destroy(rs->map);
-	free(rs->table_name);
 	free(rs->schema_name);
-	for( i = 0; i < rs->column_count; i++)
+	free(rs->buffer);
+	free(rs->table_name);
+	for (i = 0; i < rs->column_count; i++)
 		free(rs->col_desc_array[i].name);
 	free(rs->col_desc_array);
 	free(rs);
 }
+
 void init_rs(result_set *rs)
 {
 	rs->map = cfuhash_new();
@@ -48,7 +50,8 @@ void init_rs(result_set *rs)
 void int32_to_uint8(uint8_t *output,int n)
 {
 	int i;
-	for(i = 0; i < 4; i++){
+	for(i = 0; i < 4; i++)
+	{
 		output[i] = n >> ((3 - i) * 8) & 0xff; 
 	}
 }
@@ -65,6 +68,13 @@ int uint8_to_int16(uint8_t *input)
 	return i;
 }
 
+void uint8_to_string(uint8_t *in, int n, char *output)
+{
+	int i;
+	for (i = 0; i < n; i++)
+		output[i] = in[i];
+}
+
 void *get_val(result_set *rs, char *column_name)
 {
 	return cfuhash_get(rs->map, column_name);
@@ -72,10 +82,10 @@ void *get_val(result_set *rs, char *column_name)
 
 int has_next(result_set *rs)
 {
-	int m, x, p, q, j;
+	int m, x, p, q, j, *val;
+	char *output;
 
 	rs->curr_row++;
-	char *output;
 
 	if (rs->curr_row > rs->row_count)
 		return 0;
@@ -87,10 +97,8 @@ int has_next(result_set *rs)
 		x = uint8_to_int32(&rs->buffer[rs->curr_pos]); 
 		rs->curr_pos += 4;
 
-		//printf("Column Name: %s\n", rs->col_desc_array[m].name);
 		if (x < 0)
 		{
-			//printf("Column Value: Null\n");
 			continue;
 		}
 		if (rs->col_desc_array[m].type == VARCHAR)
@@ -102,13 +110,7 @@ int has_next(result_set *rs)
 
 			rs->curr_pos += x;
 
-			/*printf("Key is %s\n", rs->col_desc_array[m].name);
-			printf("Value is %s\n", output);*/
-
 			cfuhash_put(rs->map, rs->col_desc_array[m].name, output);
-			
-			/*char *temp = (char *)get_val(rs, "name");
-			  printf("Got value immediately as %s\n", temp);*/
 		}
 		else if (rs->col_desc_array[m].type == UUID)
 		{
@@ -122,17 +124,16 @@ int has_next(result_set *rs)
 				output[j] = rs->buffer[rs->curr_pos];
 			}
 			output[j] = '\0';
+			printf("\n");
 			cfuhash_put(rs->map, rs->col_desc_array[m].name, output);
 		}
 		else if (rs->col_desc_array[m].type == INT)
 		{
-			int *a = (int *)malloc(sizeof(int));
-			x = uint8_to_int32(&rs->buffer[rs->curr_pos]);
+			val = (int *)malloc(sizeof(int));
+			x = uint8_to_int32(&rs->buffer[rs->curr_pos]); 
+			*val = x;
 			rs->curr_pos += 4;
-			*a = x;
-			printf("Column Value:%d\n", x);
-			cfuhash_put(rs->map, rs->col_desc_array[m].name, a);
-
+			cfuhash_put(rs->map, rs->col_desc_array[m].name, val);
 		}
 		else if (rs->col_desc_array[m].type == SET)
 		{
@@ -186,14 +187,9 @@ int has_next(result_set *rs)
 
 	return 1;
 }
-void uint8_to_string(uint8_t *in, int n, char *output)
-{
-	int i;
-	for (i = 0; i < n; i++)
-		output[i] = in[i];
-}
 
-int cassandra_connect(int sock, char *ip, char *user, char *pass)
+
+int cass_connect(int sock, char *ip, char *user, char *pass)
 {
 	uint8_t recvBuff[1024000], sendbuff[10240];
 	int i, j, n;
@@ -208,14 +204,14 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0))<0)
 			return 0;
 	}
-	
+
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(sock);
 	serv_addr.sin_addr.s_addr = inet_addr(ip);
 
 	if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 	{
-		fprintf(stderr,"\n Error : Connect Failed \n");
+		fprintf(stderr,"Error : Connect Failed\n");
 		sockfd = -1;
 		return 0;
 	}
@@ -233,7 +229,7 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 	sendbuff[3] = 0x01;
 
 	/* Opcode - 1 for STARTUP */
-	sendbuff[4] = 0x01;
+	sendbuff[4] = STARTUP;
 
 	/* Length of */
 	sendbuff[5] = 0;
@@ -282,20 +278,24 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 	while((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
 	{
 		recvBuff[n] = 0;
-		if(recvBuff[4] == 0x03)//upcode value
+		if(recvBuff[4] == AUTHENTICATE)//upcode value
 			AUTH_NEEDED = 1;
-		else if(recvBuff[4] == 0x00){
+		else if(recvBuff[4] == ERROR)
+		{
 			for (i = 9; i < n; i++)
 				fprintf(stderr, "%c", recvBuff[i]);
 			fprintf(stderr, "\n");
 			return 0;
 		}
+		else
+			return 1;
 		break;
 	}
 
 	if(n < 0)
 	{
-		//   printf("\n Read Error \n");
+		printf("Read Error \n");
+		return 0;
 	}
 	/* Version */
 	sendbuff[0] = 0x03; 
@@ -307,7 +307,7 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 	sendbuff[3] = 0x01;
 
 	/* Opcode - F for AUTH_RESPONSE */
-	sendbuff[4] = 0x0F;
+	sendbuff[4] = AUTH_RESPONSE;
 
 	x = strlen(user) + strlen(pass) + 2 + 4;
 
@@ -336,7 +336,7 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
 	{
 		recvBuff[n] = 0;
-		if(recvBuff[4] == 0x00)
+		if(recvBuff[4] == ERROR)
 		{
 			for (i = 9; i < n; i++)
 				fprintf(stderr, "%c", recvBuff[i]);
@@ -356,7 +356,7 @@ int cassandra_connect(int sock, char *ip, char *user, char *pass)
 	return 1;
 }
 
-result_set* cassandra_execute(char *query)
+result_set *cass_execute(char *query)
 {
 	uint8_t recvBuff[1024000], sendbuff[10240];
 	int i, j, l, m, n, x;
@@ -365,8 +365,8 @@ result_set* cassandra_execute(char *query)
 	rs = create_rs();
 	init_rs(rs);
 
-
 	sendbuff[0] = 0x03; 
+
 	/* Flag - set to 0 (default). For startup, neither compression nor tracing is required. */
 	sendbuff[1] = 0x02;
 
@@ -375,11 +375,12 @@ result_set* cassandra_execute(char *query)
 	sendbuff[3] = 0x01;
 
 	/* Opcode - 7 for Query */
-	sendbuff[4] = 0x07;
+	sendbuff[4] = QUERY;
 
 	x = strlen(query) + 4 + 3 + 4;
 
 	int32_to_uint8(&sendbuff[5], x);
+
 	x = strlen(query);
 
 	int32_to_uint8(&sendbuff[9], x);
@@ -388,9 +389,14 @@ result_set* cassandra_execute(char *query)
 		sendbuff[i] = query[j];
 	}
 
+	/* 2 bytes consistency level */
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x01;
+
+	/* 1 byte flags - for now, it has been set to 4, and the next 4 bytes must be result_page_size */
 	sendbuff[i++] = 0x04;
+
+	/* 4 byte result_page_size */
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x03;
@@ -402,7 +408,8 @@ result_set* cassandra_execute(char *query)
 	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
 	{
 		recvBuff[n] = 0;
-		if(recvBuff[4] == 0x00)
+
+		if(recvBuff[4] == ERROR)
 		{
 			for (i = 9; i < n; i++)
 				fprintf(stderr, "%c", recvBuff[i]);
@@ -420,13 +427,12 @@ result_set* cassandra_execute(char *query)
 
 		for (j = 0; j < n; j++)
 			rs->buffer[j] = recvBuff[j];
-		
 
-		if (uint8_to_int32(&recvBuff[rs->curr_pos]) == 2) //Result of SELECT Query
+		if (uint8_to_int32(&recvBuff[rs->curr_pos]) == ROWS) //Result of SELECT Query
 		{
-			rs->curr_pos += 4; //after Check if Type of Result as above
+			rs->curr_pos += 4; //after Check of Type of Result as above
 
-			if (uint8_to_int32(&recvBuff[rs->curr_pos]) == 1)
+			if (uint8_to_int32(&recvBuff[rs->curr_pos]) & 1)
 			{
 				rs->curr_pos += 4;//after check metadata
 
@@ -448,7 +454,7 @@ result_set* cassandra_execute(char *query)
 				rs->curr_pos += x;
 
 				//printf("Schema name : %s\n", rs->schema_name);
-				
+
 				x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
 				rs->curr_pos += 2;
 				rs->table_name = (char *) malloc(x + 1);
@@ -458,70 +464,311 @@ result_set* cassandra_execute(char *query)
 				rs->curr_pos += x;
 
 				//printf("Table name : %s\n", rs->table_name);
-				
-				for (l = 0; l < COLUMN_COUNT; l++)
+			}
+
+			for (l = 0; l < COLUMN_COUNT; l++)
+			{
+				x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+
+				rs->col_desc_array[l].name = (char *)malloc(x + 1);
+				strncpy(rs->col_desc_array[l].name, (char *)&recvBuff[rs->curr_pos], x);
+				rs->col_desc_array[l].name[x] = '\0';
+				rs->curr_pos += x;
+
+				//REACHED HERE	
+				j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+				rs->col_desc_array[l].type = j;
+
+				if (j == CUSTOM)
 				{
 					x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
 					rs->curr_pos += 2;
 
-					rs->col_desc_array[l].name = (char *)malloc(x + 1);
-					strncpy(rs->col_desc_array[l].name, (char *)&recvBuff[rs->curr_pos], x);
-					rs->col_desc_array[l].name[x] = '\0';
-					rs->curr_pos += x;
-
-					//REACHED HERE	
+					printf("Printing Class name of CUSTOM type\n");
+					for (m = 0; m < x; m++, rs->curr_pos++)
+						printf("%c", recvBuff[rs->curr_pos]);
+					printf("\n");
+				}
+				else if (j == SET)//uint8 0x22
+				{
+					/* CHECK!! Shouldn't this be a key-value extract? */
 					j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
 					rs->curr_pos += 2;
-					rs->col_desc_array[l].type = j;
-
-					if (j == CUSTOM)
-					{
-						x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
-						rs->curr_pos += 2;
-
-						printf("Printing Class name of CUSTOM type\n");
-						for (m = 0; m < x; m++, rs->curr_pos++)
-							printf("%c", recvBuff[rs->curr_pos]);
-						printf("\n");
-					}
-					else if (j == SET)//uint8 0x22
-					{
-						/* CHECK!! Shouldn't this be a key-value extract? */
-						j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
-						rs->curr_pos += 2;
-					}
-					else if (j == MAP)//uint8 0x22
-					{
-						j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
-						rs->curr_pos += 2;
-
-						j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
-						rs->curr_pos += 2;
-					}
-					else
-					{
-						//printf("Type : %x\n",j);
-					}
 				}
-				ROW_COUNT = uint8_to_int32(&recvBuff[rs->curr_pos]);
-				rs->curr_pos += 4;
-				rs->row_count = ROW_COUNT;
+				else if (j == MAP)//uint8 0x22
+				{
+					j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+					rs->curr_pos += 2;
 
-				//printf("No of Rows: %d\n", rs->row_count);
-
+					j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+					rs->curr_pos += 2;
+				}
+				else
+				{
+					//printf("Type : %x\n",j);
+				}
 			}
+			ROW_COUNT = uint8_to_int32(&recvBuff[rs->curr_pos]);
+			rs->curr_pos += 4;
+			rs->row_count = ROW_COUNT;
 		}
 		break;
 	}
-	/*if( n < 0) {
-	// printf("\n Read Error \n");
-	return 0;
-	}
-	return 1;*/
-	/*char *temp = (char *)get_val(rs, "name");
-	  printf("Got value immediately as %s\n", temp);*/
 
 	return rs;
 }
 
+cass_prepared_statement *cass_prepare_statement(char *str)
+{
+	uint8_t recvBuff[1024000], sendbuff[10240];
+	int query_length, i, n, curr_pos;
+	int16_t id_length;
+	int result_type;
+	cass_prepared_statement *cps;
 
+
+	sendbuff[0] = 0x03; 
+
+	/* Flag - set to 2, for tracing */
+	sendbuff[1] = 0x02;
+
+	/* Stream - set to 1 (first non zero value) */
+	sendbuff[2] = 0x00;
+	sendbuff[3] = 0x01;
+
+	/* Opcode - 9 for Prepare */
+	sendbuff[4] = PREPARE;
+
+	/* fill in length */
+	query_length = strlen(str);
+
+	int32_to_uint8(&sendbuff[5], query_length + 4);
+
+	int32_to_uint8(&sendbuff[9], query_length);
+	/* fill in the query */
+	for (i = 0; i < query_length; i++)
+		sendbuff[i + 13] = str[i];
+
+	write(sockfd, sendbuff, query_length + 13);
+
+	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
+	{
+		recvBuff[n] = 0;
+
+		if(recvBuff[4] == ERROR)
+		{
+			for (i = 9; i < n; i++)
+				fprintf(stderr, "%c", recvBuff[i]);
+
+			fprintf(stderr, "\n");
+			return 0;
+		}
+
+		break;
+	}
+
+	if (n < 0)
+	{
+		printf("Read Error \n");
+		return 0;
+	}
+
+	/* skip 16-byte UUID */
+	curr_pos = 25;
+
+	result_type = uint8_to_int32(&recvBuff[curr_pos]);
+	curr_pos += 4;
+
+	if (result_type == PREPARED)
+		/*printf("Definitely result of a PREPARE message\n")*/;
+	else
+	{
+		printf("Something went wrong. Did not receive the response for a prepared query.\n");
+		return NULL;
+	}
+
+	cps = (cass_prepared_statement *)malloc(sizeof(cass_prepared_statement));
+
+	id_length = uint8_to_int16(&recvBuff[curr_pos]);
+	curr_pos += 2;
+
+	cps->id_length = id_length;
+	cps->id = (uint8_t *)malloc(id_length);
+
+	for (i = 0; i < id_length; i++)
+		cps->id[i] = recvBuff[curr_pos + i];
+
+	return cps;
+}
+
+result_set *cass_execute_prepared_statement(cass_prepared_statement *cps)
+{
+	uint8_t recvBuff[1024000], sendbuff[10240];
+	int i, n, curr_pos, body_length, j, x, l, m;
+
+	result_set *rs;
+
+	rs = create_rs();
+	init_rs(rs);
+
+	/* Sending an EXECUTE message */
+
+	sendbuff[0] = 0x03; 
+
+	/* Flag - set to 2, for tracing */
+	sendbuff[1] = 0x02;
+
+	/* Stream - set to 1 (first non zero value) */
+	sendbuff[2] = 0x00;
+	sendbuff[3] = 0x01;
+
+	/* Opcode - A for Execute */
+	sendbuff[4] = EXECUTE;
+
+	/* Now [short bytes] id */
+	sendbuff[9] = (cps->id_length) >> 8;
+	sendbuff[10] = (cps->id_length);
+
+	for (i = 0; i < cps->id_length; i++)
+		sendbuff[11 + i] = cps->id[i];
+
+	curr_pos = 11 + cps->id_length;
+
+	/* Now add the query parameters */
+
+	/* consistency */
+	sendbuff[curr_pos++] = 0;
+	sendbuff[curr_pos++] = 1;
+
+	/* flags */
+	sendbuff[curr_pos++] = 0;
+
+	body_length = curr_pos - 9; //something - do update
+
+	/* Length of the packet */
+	int32_to_uint8(&sendbuff[5], body_length);
+
+	write(sockfd, sendbuff, curr_pos);
+
+	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
+	{
+		recvBuff[n] = 0;
+
+		if(recvBuff[4] == ERROR)
+		{
+			for (i = 9; i < n; i++)
+				fprintf(stderr, "%c", recvBuff[i]);
+			fprintf(stderr, "\n");
+			return 0;
+		}
+
+		break;
+	}
+
+	if (n < 0)
+	{
+		printf("Read Error \n");
+		return 0;
+	}
+
+	body_length = uint8_to_int32(&recvBuff[5]);
+	//printf("Body_length is %d\n", body_length);
+
+	rs->buffer = (uint8_t *)malloc(n + 1);
+	/* Skip the tracing id */
+	rs->curr_pos = 25;
+
+	for (j = 0; j < n; j++)
+		rs->buffer[j] = recvBuff[j];
+
+	if (uint8_to_int32(&recvBuff[rs->curr_pos]) == ROWS) //Result of SELECT Query
+	{
+		rs->curr_pos += 4; //after Check of Type of Result as above
+
+		if (uint8_to_int32(&recvBuff[rs->curr_pos]) & 1)
+		{
+			rs->curr_pos += 4;//after check metadata
+
+			COLUMN_COUNT = uint8_to_int32(&recvBuff[rs->curr_pos]);
+			rs->curr_pos += 4;
+
+			rs->column_count = COLUMN_COUNT;
+			//printf("No of Columns are %d\n", rs->column_count);
+
+			/* Column count obtained - can initialize column_desc in rs */
+			rs->col_desc_array = (column_desc*)malloc(sizeof(column_desc) * (rs->column_count));
+			x = uint8_to_int16(&recvBuff[rs->curr_pos]);		 
+			rs->curr_pos += 2;
+
+			rs->schema_name = (char *)malloc(x + 1);
+
+			strncpy(rs->schema_name, (char *)&recvBuff[rs->curr_pos], x);
+			rs->schema_name[x] = '\0';
+			rs->curr_pos += x;
+
+			//printf("Schema name : %s\n", rs->schema_name);
+
+			x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+			rs->curr_pos += 2;
+			rs->table_name = (char *) malloc(x + 1);
+
+			strncpy(rs->table_name, (char *)&recvBuff[rs->curr_pos], x);
+			rs->table_name[x] = '\0';
+			rs->curr_pos += x;
+
+			//printf("Table name : %s\n", rs->table_name);
+		}
+
+		for (l = 0; l < COLUMN_COUNT; l++)
+		{
+			x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+			rs->curr_pos += 2;
+
+			rs->col_desc_array[l].name = (char *)malloc(x + 1);
+			strncpy(rs->col_desc_array[l].name, (char *)&recvBuff[rs->curr_pos], x);
+			rs->col_desc_array[l].name[x] = '\0';
+			rs->curr_pos += x;
+
+			//REACHED HERE	
+			j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+			rs->curr_pos += 2;
+			rs->col_desc_array[l].type = j;
+
+			if (j == CUSTOM)
+			{
+				x = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+
+				printf("Printing Class name of CUSTOM type\n");
+				for (m = 0; m < x; m++, rs->curr_pos++)
+					printf("%c", recvBuff[rs->curr_pos]);
+				printf("\n");
+			}
+			else if (j == SET)//uint8 0x22
+			{
+				/* CHECK!! Shouldn't this be a key-value extract? */
+				j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+			}
+			else if (j == MAP)//uint8 0x22
+			{
+				j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+
+				j = uint8_to_int16(&recvBuff[rs->curr_pos]); 
+				rs->curr_pos += 2;
+			}
+			else
+			{
+				//printf("Type : %x\n",j);
+			}
+		}
+		ROW_COUNT = uint8_to_int32(&recvBuff[rs->curr_pos]);
+		rs->curr_pos += 4;
+		rs->row_count = ROW_COUNT;
+	}
+
+	return rs;
+}
