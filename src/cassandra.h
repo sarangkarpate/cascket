@@ -77,7 +77,12 @@ typedef struct cass_prepared_statement
 	uint8_t *id;
 	int id_length;
 } cass_prepared_statement;
-
+typedef struct cass_batch 
+{
+	char queries[102400];
+	int curr_pos;
+	short count;
+}cass_batch;
 /* Helping functions */
 void int32_to_uint8(uint8_t *, int);
 int uint8_to_int32(uint8_t *);
@@ -94,5 +99,7 @@ void result_set_destroy(result_set *rs);
 /* Cassandra functions */
 result_set *cass_execute(char *);
 int cass_connect(int, char *, char *, char *);
+void add_to_batch_simple(cass_batch *,char *);
+int cass_execute_batch(cass_batch *);
 cass_prepared_statement *cass_prepare_statement(char *);
 result_set *cass_execute_prepared_statement(cass_prepared_statement *);

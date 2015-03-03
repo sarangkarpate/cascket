@@ -1,5 +1,5 @@
 try: cfu.o cfuhash.o cfustring.o sample.o cassandra.o
-	cc cfu.o cfuhash.o cfustring.o sample.o cassandra.o -o try
+	cc -g cfu.o cfuhash.o cfustring.o sample.o cassandra.o -o try
 cfu.o: cfu.c
 	cc -g -c -Wall -Wextra cfu.c -o cfu.o
 sample.o: sample.c
@@ -13,4 +13,4 @@ cfustring.o: cfustring.c
 hash_usage.o: hash_usage.c
 	cc -g -c -Wall -Wextra hash_usage.c -o hash_usage.o
 clean:
-	rm *.o try
+	rm *.o try *~

@@ -571,7 +571,7 @@ int cass_execute_batch(cass_batch *batch)
 	}
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x01;
-	sendbuff[i++] = 0x08;
+	sendbuff[i++] = 0x02;
 //	sendbuff[i++] = 0x00;
 //	sendbuff[i++] = 0x09;
 
