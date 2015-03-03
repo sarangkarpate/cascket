@@ -74,7 +74,7 @@ int main(void)
 	cass_batch *b;
 	b = (cass_batch *)malloc(sizeof(cass_batch));
 	add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'j','m')");
-//	add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'r','m')");
+add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'r','m')");
 	int i;
 //	for(i = 0;i<b->curr_pos;i++){
 ///		printf("%d ",b->queries[i]);

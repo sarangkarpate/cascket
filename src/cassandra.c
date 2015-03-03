@@ -537,6 +537,7 @@ void add_to_batch_simple(cass_batch *batch,char *str)
 		printf("%c",batch->queries[j]);
 	}
 	batch->queries[j++] = 0;
+	batch->queries[j++] = 0;
 	batch->curr_pos =j;
 }
 int cass_execute_batch(cass_batch *batch)
@@ -568,16 +569,15 @@ int cass_execute_batch(cass_batch *batch)
 	for(j=0;j<batch->curr_pos;i++,j++)
 	{
 		sendbuff[i] = batch->queries[j];
+		printf("%c ",sendbuff[i]);
 	}
 	sendbuff[i++] = 0x00;
-	sendbuff[i++] = 0x01;
-	sendbuff[i++] = 0x08;
-//	sendbuff[i++] = 0x00;
-//	sendbuff[i++] = 0x09;
+	sendbuff[i++] = 0x00;
+	sendbuff[i++] = 0x40;
 
 	write(sockfd, sendbuff, i);
-//	for(j = 0;j<i;j++)
-//		printf("%c ",sendbuff[j]);
+	for(j = 0;j<i;j++)
+		printf("%d ",sendbuff[j]);
 	printf("\n");
 	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
 	{
@@ -591,9 +591,8 @@ int cass_execute_batch(cass_batch *batch)
 			fprintf(stderr, "\n");
 			return 0;
 		}
-		else{
-			for (i = 9; i < n; i++)
-				fprintf(stderr, "%c", recvBuff[i]);
+		else if(recvBuff[4] == RESULT){
+			printf("Done\n");
 		break;
 		}
 	}
