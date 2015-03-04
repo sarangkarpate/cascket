@@ -99,7 +99,11 @@ void result_set_destroy(result_set *rs);
 /* Cassandra functions */
 result_set *cass_execute(char *);
 int cass_connect(int, char *, char *, char *);
-void add_to_batch_simple(cass_batch *,char *);
-int cass_execute_batch(cass_batch *);
+
 cass_prepared_statement *cass_prepare_statement(char *);
 result_set *cass_execute_prepared_statement(cass_prepared_statement *);
+
+/* Batch Functions */
+void add_to_batch_simple(cass_batch *,char *);
+int cass_execute_batch(cass_batch *);
+void init_batch(cass_batch *);
