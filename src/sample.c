@@ -72,7 +72,7 @@ int main(void)
 
 	//printf("Got cps.id as %d\n", cps->id);
 	cass_batch *b;
-	b = (cass_batch *)malloc(sizeof(cass_batch));
+	init_batch(b);
 	add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'j','m')");
 add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'r','m')");
 	int i;
