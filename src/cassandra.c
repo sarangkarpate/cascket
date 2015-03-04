@@ -598,6 +598,15 @@ int cass_execute_batch(cass_batch *batch)
 	}
 	return 1;
 }
+
+void init_batch(cass_batch *b)
+{
+	b->count = 0;
+	b->curr_pos= 0;
+}
+
+/* ------------------------------------------------ */
+/*prepared statements functions*/
 cass_prepared_statement *cass_prepare_statement(char *str)
 {
 	uint8_t recvBuff[1024000], sendbuff[10240];
