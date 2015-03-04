@@ -520,6 +520,16 @@ result_set *cass_execute(char *query)
 
 	return rs;
 }
+/* ------------------------------------------------ */
+/*batch statements functions*/
+
+void init_batch(cass_batch *b)
+{
+	b = (cass_batch *)malloc(sizeof(cass_batch));
+	b->count = 0;
+	b->curr_pos= 0;
+}
+
 void add_to_batch_simple(cass_batch *batch,char *str)
 {
 	batch->count++;
@@ -599,11 +609,6 @@ int cass_execute_batch(cass_batch *batch)
 	return 1;
 }
 
-void init_batch(cass_batch *b)
-{
-	b->count = 0;
-	b->curr_pos= 0;
-}
 
 /* ------------------------------------------------ */
 /*prepared statements functions*/
