@@ -603,7 +603,7 @@ int cass_execute_batch(cass_batch *batch)
 		}
 		else if(recvBuff[4] == RESULT){
 			printf("Done\n");
-		break;
+			break;
 		}
 	}
 	return 1;
