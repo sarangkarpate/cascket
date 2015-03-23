@@ -187,8 +187,8 @@ int has_next(result_set *rs)
 				//		printf("%x", rs->buffer[rs->curr_pos]);
 				//}
 				value[q] = '\0';
-				cfuhash_put(rs->col_desc_array[m].cmap->map, key, value);
-				cfuhash_put(rs->map, rs->col_desc_array[m].name, rs->col_desc_array[m].cmap);
+				cfuhash_put(rs->col_desc_array[m].cmap->map, (void *)key, (void *)value);
+				cfuhash_put(rs->map, rs->col_desc_array[m].name, (void *)rs->col_desc_array[m].cmap);
 			}
 		}
 		else

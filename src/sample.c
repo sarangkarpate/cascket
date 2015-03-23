@@ -27,8 +27,8 @@ int main(void)
 		printf("User is %s\n", temp);
 		m = (cass_map *)get_val(rs,"name");
 		if(m){
-			printf("key is \n");
-			printf("%s\n",(char *)get_val_map(m,"javed"));
+			printf("key is ");
+	//		printf("%s\n",(char *)get_val_map(m,"javed"));
 		}
 		/*temp = (char  *)get_val(rs, "password");
 		if(temp)
@@ -44,7 +44,8 @@ int main(void)
 */		
 		printf("\n");
 	}
-
+	printf("x %s\n",(char *)get_val_map(m,"x"));
+	printf("a %s\n",(char *)get_val_map(m,"a"));
 /*	//str = "insert into demodb.test (name, age, surname ) VALUES ( 'abhishek', 21, 'joshi')";
 	str = "select * from system.local;";
 
