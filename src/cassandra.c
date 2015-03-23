@@ -90,11 +90,11 @@ int has_next(result_set *rs)
 	int m, x, p, q, j, *val;
 	char *output;
 
-	printf("%d\n",rs->curr_row);
 	rs->curr_row++;
 
 	if (rs->curr_row > rs->row_count)
 		return 0;
+	printf("Row number %d\n",rs->curr_row);
 
 	cfuhash_clear(rs->map);
 

@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include <stdlib.h>
+#include<string.h>
 #include "cassandra.h"
 #include "cfuhash.h"
 int main(void)
@@ -20,6 +21,8 @@ int main(void)
 	rs = cass_execute(str);
 	cass_map *m;
 	cass_set *s;
+	int c;
+	void *ab;
 	printf("Normal query\n");
 
 	int i;
@@ -30,7 +33,8 @@ int main(void)
 		m = (cass_map *)get_val(rs,"truncated_at");
 		if(m){
 			printf("key is ");
-			printf("%s\n",(char*)get_val_map(m,"55080ab05d9c388690a4acb25fe1f77b");
+		//	ab = get_val_map(m,"55080ab05d9c388690a4acb25fe1f77b");
+			printf("%x\n",m->value_type);
 		}
 		s = (cass_set*)get_val(rs,"tokens");
 		if(s){
