@@ -71,10 +71,13 @@ int main(void)
 
 
 	//printf("Got cps.id as %d\n", cps->id);
-	cass_batch *b;
+	cass_batch *b = create_batch();
 	init_batch(b);
-	add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'j','m')");
+	str = "INSERT INTO demodb.users (user, gender) VALUES ( 'j', 'm' )";
+	cps = cass_prepare_statement(str);
+//	add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'j','m')");
 add_to_batch_simple(b,"INSERT INTO demodb.users (user, gender ) VALUES ( 'r','m')");
+	add_to_batch_prepared(b,cps);
 	int i;
 //	for(i = 0;i<b->curr_pos;i++){
 ///		printf("%d ",b->queries[i]);

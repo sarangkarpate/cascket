@@ -83,6 +83,10 @@ typedef struct cass_batch
 	int curr_pos;
 	short count;
 }cass_batch;
+typedef struct cass_map 
+{
+	cfuhash_table_t *map;
+}cass_map;
 /* Helping functions */
 void int32_to_uint8(uint8_t *, int);
 int uint8_to_int32(uint8_t *);
@@ -105,5 +109,8 @@ result_set *cass_execute_prepared_statement(cass_prepared_statement *);
 
 /* Batch Functions */
 void add_to_batch_simple(cass_batch *,char *);
+void add_to_batch_prepared(cass_batch*,cass_prepared_statement*);
 int cass_execute_batch(cass_batch *);
 void init_batch(cass_batch *);
+cass_batch *create_batch();
+

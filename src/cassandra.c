@@ -522,14 +522,33 @@ result_set *cass_execute(char *query)
 }
 /* ------------------------------------------------ */
 /*batch statements functions*/
-
+cass_batch *create_batch(){
+	return (cass_batch*)malloc(sizeof(cass_batch));
+}
 void init_batch(cass_batch *b)
 {
-	b = (cass_batch *)malloc(sizeof(cass_batch));
 	b->count = 0;
 	b->curr_pos= 0;
 }
-
+void add_to_batch_prepared(cass_batch *batch,cass_prepared_statement* cps)
+{
+	batch->count++;
+	int j = batch->curr_pos,i;		
+	batch->queries[j++] = 1;
+	uint8_t *output = malloc(4);
+	int32_to_uint8(output,cps->id_length);
+	//batch->queries[j++] = output[0];
+//	batch->queries[j++] = output[1];
+	batch->queries[j++] = output[2];
+	batch->queries[j++] = output[3];
+	for(i = 0;i<cps->id_length;i++){
+		batch->queries[j++] = cps->id[i];
+		printf("%c",batch->queries[j]);
+	}
+	batch->queries[j++] = 0;
+	batch->queries[j++] = 0;
+	batch->curr_pos =j;
+}
 void add_to_batch_simple(cass_batch *batch,char *str)
 {
 	batch->count++;
@@ -574,25 +593,19 @@ int cass_execute_batch(cass_batch *batch)
 	int32_to_uint8(&sendbuff[10], batch->count);
 	sendbuff[10] = sendbuff[12];
 	sendbuff[11] = sendbuff[13];
-	printf("%d %d\n",sendbuff[10],sendbuff[11]);
 	int i = 12,j;
 	for(j=0;j<batch->curr_pos;i++,j++)
 	{
 		sendbuff[i] = batch->queries[j];
-		printf("%c ",sendbuff[i]);
 	}
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x00;
 	sendbuff[i++] = 0x40;
 
 	write(sockfd, sendbuff, i);
-	for(j = 0;j<i;j++)
-		printf("%d ",sendbuff[j]);
-	printf("\n");
 	while ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0)
 	{
 		recvBuff[n] = 0;
-		printf(" Hello %d\n",n);
 		if(recvBuff[4] == ERROR)
 		{
 			for (i = 9; i < n; i++)
@@ -602,7 +615,6 @@ int cass_execute_batch(cass_batch *batch)
 			return 0;
 		}
 		else if(recvBuff[4] == RESULT){
-			printf("Done\n");
 			break;
 		}
 	}
