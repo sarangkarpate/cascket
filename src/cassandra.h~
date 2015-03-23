@@ -102,7 +102,6 @@ void init_rs(result_set *);
 result_set *create_rs();
 int has_next(result_set *);
 void *get_val(result_set *rs, char *column_name);
-void *get_val_map(cass_map *m, char *column_name);
 void result_set_destroy(result_set *rs);
 
 /* Cassandra functions */

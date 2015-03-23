@@ -28,7 +28,7 @@ int main(void)
 		m = (cass_map *)get_val(rs,"name");
 		if(m){
 			printf("key is \n");
-			printf("%s\n",(char *)get_val_map(m,"javed"));
+			printf("%s\n",(char *)get_val_map(m,"javed");
 		}
 		/*temp = (char  *)get_val(rs, "password");
 		if(temp)
