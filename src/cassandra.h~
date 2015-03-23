@@ -67,7 +67,6 @@ typedef struct cass_set
 {
 	void **set ;
 	uint16_t type;
-	int length;
 }cass_set;
 typedef struct column_desc{
 	char *name;				/* Column description structure for ResultSet */

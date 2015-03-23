@@ -179,7 +179,7 @@ int has_next(result_set *rs)
 				uint8_to_string(&rs->buffer[rs->curr_pos], q, key);
 				//			for (p = 0; p < q; p++, rs->curr_pos++)
 				//			{
-				//		printf("%x", rs->buffer[rs->curr_pos]);
+						printf("%x", rs->buffer[rs->curr_pos]);
 				//			}
 				//	printf(":");
 				key[q] = '\0';
