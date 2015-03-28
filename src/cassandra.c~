@@ -736,7 +736,7 @@ result_set *cass_execute_prepared_statement(cass_prepared_statement *cps)
 {
 	uint8_t recvBuff[1024000], sendbuff[10240];
 	int i, n, curr_pos, body_length, j, x, l, m;
-	int COLUMN_COUNT, ROW_COUNT;
+
 	result_set *rs;
 
 	rs = create_rs();

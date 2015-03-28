@@ -52,7 +52,9 @@
 
 
 int AUTH_NEEDED;
+int COLUMN_COUNT;
 int sockfd;
+int ROW_COUNT;
 struct sockaddr_in serv_addr;
 
 typedef struct cass_map 
