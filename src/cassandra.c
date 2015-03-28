@@ -28,7 +28,6 @@ void result_set_destroy(result_set *rs)
 	free(rs->table_name);
 	for (i = 0; i < rs->column_count; i++){
 		free(rs->col_desc_array[i].name);
-		free(rs->col_desc_array[i].cmap);
 	}
 	free(rs->col_desc_array);
 	free(rs);
@@ -87,7 +86,7 @@ void *get_val_map(cass_map *m, char *column_name){
 }
 int has_next(result_set *rs)
 {
-	int m, x, p, q, j, *val;
+	int m, x,  q, j, *val;
 	char *output;
 
 	rs->curr_row++;
